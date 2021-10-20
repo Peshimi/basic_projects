@@ -1,0 +1,118 @@
+  a) Create an instance in AWS using EC2
+    - Login in AWS account, choose EC2 and launch instances;
+    - Choose AMI (Amazon Machine Image) and select Ubuntu 20.04 LTS;
+    - Choose Instance Type: t2.small will work in this example;
+    - Configure Instance Details: choose 1 instance;
+    - Add storage: select 32 GB size of storage;
+    - Add tags: skip this one;
+    - Configure Security Group: to SHH port add two more rules: port 80 for HTTP and port 443 for HTTPS.
+        Choose 0.0.0.0/0 CIDR for all of the ports;
+    - Review Instance and Launch
+
+
+  b) Create a key and connect with PuTTY
+    - Create a new key pair and download it, then Launch Instances;
+    - Back to EC2 option, by selecting 'View Instances' and wait until the server starts running;
+    - Open an application PuTTYgen and generate a key: choose a 'Load' option and open the downloaded pair of key.
+        Then save it by using "Save private key" button;
+    - Open PuTTY: in Host Name (or IP address) paste a public IP address- find it in the instance which was created earlier in AWS.
+        Next step is showing SHH options on the left side: Category -> Connection -> SSH, and select 'Auth'. There browse
+        the path where the key from PuTTYgen was saved. Now open the PuTTY and login as 'ubuntu';
+
+
+  c) Installation process
+
+
+    # APACHE
+    - []$ sudo apt-get update => update the repository
+    - []$ sudo apt-get install apache2
+    - []$ sudo ufw app list => list all currently available UFW application profiles
+      | 'Apache' opens only port 80 |
+      | 'Apache Full' opens port 80 and 443 |
+      | 'Apache Secure' opens only port 443 |
+    - []$ sudo ufw allow in "Apache Full" => allow traffic on ports 80 and 443
+    - []$ sudo ufw status => if status is inactive, use command:
+      []$ sudo ufw enable
+      => if the SSH option is not active, please use command:
+      []$ sudo ufw allow in "ssh"
+    - []$ systemctl status apache2 => check is apache server running
+
+
+    # MYSQL
+    - []$ sudo apt install mysql-server
+    - []$ sudo mysql_secure_installation => configuration of the validate password plugin, there are 3 levels:
+      | LOW    Length >= 8 |
+      | MEDIUM Length >= 8, numeric, mixed case, special characters |
+      | STRONG Length >= 8, numeric, mixed case, special characters and dictionary file |
+      => To choose a level of password validation policy enter: 0 (low) 1 (medium) 2 (strong)
+    - []$ sudo mysql => test are you able to log in to the MySQL console
+    - mysql> exit
+
+
+    # PHP
+    - []$ sudo apt install php libapache2-mod-php php-mysql
+
+
+    # CREATING A MYSQL DATABASE AND USER FOR WORDPRESS
+    - []$ sudo mysql -u root
+    - mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
+    - mysql> CREATE DATABASE wordpress DEFAULT CHARACTER SET uft8 COLLATE utf8_unicode_ci;
+    - mysql> CREATE USER 'wordpress_user'@'%' IDENTIFIED BY 'password';
+    - mysql> GRANT ALL ON wordpress.* TO 'wordpress_user'@'%';
+    - mysql> FLUSH PRIVILEGES; => use it for update the database statement- our MySQL server will know about recent changes we've made
+    - mysql> exit;
+
+
+    # INSTALLING ADDITIONAL PHP EXTENSIONS
+    - []$ sudo apt install php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+    - []$ sudo systemctl restart apache2
+
+
+    # ADJUSTING APACHE'S CONFIGURATION TO ALLOW FOR .HTACCESS OVERRIDES AND REWRITES
+    - []$ sudo mkdir /var/www/wordpress
+    - []$ sudo chown -R $USER:$USER /var/www/wordpress
+    - []$ sudo vim /etc/apache2/sites-available/wordpress.conf
+      |    <VirtualHost *:80>
+      |        ServerName wordpress
+      |        ServerAlias www.wordpress
+      |        ServerAdmin mail@localhost
+      |        DocumentRoot /var/www/wordpress
+      |        ErrorLog ${APACHE_LOG_DIR}/error.log
+      |        CustomLog ${APACHE_LOG_DIR}/access.log combined
+      |   <Directory /var/www/wordpress/>
+      |        AllowOverride All
+      |   </Directory>
+      |   </VirtualHost>
+    - []$ sudo a2ensite wordpress
+    - []$ sudo systemctl reload apache2
+    - []$ sudo a2dissite 000-default => if you want to disable the default page view of Apache when you open your website
+    - []$ sudo a2enmod rewrite
+    - []$ sudo systemctl restart apache2
+    - []$ sudo apache2ctl configtest
+
+
+    # DOWNLOADING AND CONFIGURING WORDPRESS
+    - []$ cd /tmp
+    - []$ curl -O https://wordpress.org/latest.tar.gz
+    - []$ tar xzvf latest.tar.gz
+    - []$ touch /tmp/wordpress/.htaccess
+    - []$ cp /tmp/wordpress/wp-config-sample.php /tmp/wordpress/wp-config.php => we will copy a sample configuration file to the filename that Wordpress reads
+    - []$ mkdir /tmp/wordpress/wp-content/upgrade => we will also create a directory- Wordpress won't run into permissions issues when trying to do this on its own following an update to its software
+    - []$ sudo cp -a /tmp/wordpress/. /var/www/wordpress => copy entire contents of the directory into document root
+    - []$ cd ..
+    - []$ sudo chown -R www-data:www-data /var/www/wordpress
+    - []$ sudo find /var/www/wordpress/ -type d -exec chmod 750 {} \;
+    - []$ sudo find /var/www/wordpress/ -type f -exec chmod 640 {} \;
+    - []$ curl -s https://api.wordpress.org/secret-key/1.1/salt/ => create unique values and paste them to the file wp-config.php
+    - []$ sudo vim /var/www/wordpress/wp-config.php => and edit those values after 
+      | define('DB_NAME', 'wordpress' );
+      | define( 'DB_USER', 'wordpress_user' );
+      | define( 'DB_PASSWORD', 'password' );
+      | define( 'DB_HOST', 'localhost' );
+      | define( 'DB_CHARSET', 'utf8' );
+      | define( 'DB_COLLATE', '' );
+      | . . .
+      | define('FS_METHOD', 'direct');
+
+
+     # OPEN YOUR WEBSITE BY TYPING http://your-public-IP
