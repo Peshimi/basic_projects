@@ -121,3 +121,5 @@ b) Installation process
     | define( 'DB_COLLATE', '' );
     | . . .
     | define('FS_METHOD', 'direct');
+
+  # Open your site by typing http://wordpress_public_ip_address
