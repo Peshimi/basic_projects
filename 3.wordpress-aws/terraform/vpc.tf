@@ -47,3 +47,54 @@ resource "aws_instance" "web" {
     Name = "Wordpress"
   }
 }
+
+# EIP 
+resource "aws_eip" "foo" {
+  vpc = true
+}
+
+# Internet gateway
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "main"
+  }
+}
+
+# Public NAT 
+resource "aws_nat_gateway" "sth" {
+  allocation_id = aws_eip.foo.id
+  subnet_id     = aws_subnet.main.id
+
+  tags = {
+    Name = "gw NAT"
+  }
+
+  depends_on = [aws_internet_gateway.gw]
+}
+
+# Subnet
+resource "aws_subnet" "main" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "Main"
+  }
+}
+
+# Route table
+resource "aws_route_table" "default" {
+  vpc_id = aws_vpc.main.id
+
+	tags = {
+		Name = "fall"
+	}
+}
+
+resource "aws_route" "main_to_internet" {
+	route_table_id = aws_route_table.default.id
+	destination_cidr_block = "0.0.0.0/0"
+	gateway_id = aws_internet_gateway.gw.id
+}
