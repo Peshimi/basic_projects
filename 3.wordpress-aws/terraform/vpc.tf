@@ -23,30 +23,30 @@ resource "aws_vpc" "main" {
 }
 
 # Create an instance
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"]
-}
-
-resource "aws_instance" "web" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
-
-  tags = {
-    Name = "Wordpress"
-  }
-}
+#data "aws_ami" "ubuntu" { 
+#most_recent = true
+#
+#  filter {
+#    name   = "name"
+#    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+#  }
+#
+#  filter {
+#    name   = "virtualization-type"
+#    values = ["hvm"]
+#  }
+#
+#  owners = ["099720109477"]
+#}
+#
+#resource "aws_instance" "web" {
+#  ami           = data.aws_ami.ubuntu.id
+#  instance_type = "t3.micro"
+#
+#  tags = {
+#    Name = "Wordpress"
+#  }
+#}
 
 # EIP 
 resource "aws_eip" "foo" {
@@ -78,6 +78,7 @@ resource "aws_nat_gateway" "sth" {
 resource "aws_subnet" "main" {
   vpc_id     = aws_vpc.main.id
   cidr_block = "10.0.1.0/24"
+	availability_zone = "us-east-1a"
 
   tags = {
     Name = "Main"
@@ -88,13 +89,18 @@ resource "aws_subnet" "main" {
 resource "aws_route_table" "default" {
   vpc_id = aws_vpc.main.id
 
-	tags = {
-		Name = "fall"
-	}
+  tags = {
+    Name = "fall"
+  }
 }
 
 resource "aws_route" "main_to_internet" {
+  route_table_id         = aws_route_table.default.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.gw.id
+}
+
+resource "aws_route_table_association" "public" {
+	subnet_id = aws_subnet.main.id
 	route_table_id = aws_route_table.default.id
-	destination_cidr_block = "0.0.0.0/0"
-	gateway_id = aws_internet_gateway.gw.id
 }
