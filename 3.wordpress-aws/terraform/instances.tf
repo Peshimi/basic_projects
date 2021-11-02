@@ -30,19 +30,20 @@ resource "aws_instance" "public" {
 	key_name = "kitty"
 
   tags = {
-    Name = "Wordpress"
+    Name = "wordpress"
   }
 }
 
 resource "aws_instance" "private" {
 	subnet_id = aws_subnet.main.id
   ami                    = data.aws_ami.ubuntu.id
+  associate_public_ip_address = true
   instance_type          = "t3.micro"
   security_groups = [module.allow_ssh.security_group_id]
 	key_name = "kitty"
 
   tags = {
-    Name = "Database"
+    Name = "database"
   }
 }
 
@@ -63,6 +64,23 @@ module "allow_ssh" {
       protocol    = "tcp"
       description = "ssh-access"
       cidr_blocks = "0.0.0.0/0"
+    },
+    {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      description = "http-access"
+      cidr_blocks = "0.0.0.0/0"
+    },
+    {
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      description = "https-access"
+      cidr_blocks = "0.0.0.0/0"
     }
   ]
+
+  egress_cidr_blocks = [ "0.0.0.0/0" ] 
+  egress_rules       = [ "all-all" ]
 }
