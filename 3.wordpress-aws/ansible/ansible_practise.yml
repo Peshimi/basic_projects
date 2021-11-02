@@ -1,0 +1,19 @@
+---
+- name: Study ansible basics
+  hosts: wordpress
+  remote_user: ubuntu
+  become: true
+
+  tasks:
+  - name: Update repositories cache
+    apt: 
+      update_cache: yes
+
+  - name: Ensure apache is at the latest version 
+    ansible.builtin.apt:
+      name: apache2
+      state: latest
+#  - name: Write the apache config file
+#    ansible.builtin.template:
+#      src: 
+#      dest: /etc/sites-available/apache2
