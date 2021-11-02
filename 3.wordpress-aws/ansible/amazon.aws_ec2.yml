@@ -3,3 +3,7 @@ regions:
   - us-east-1
 compose:
   ansible_host: public_ip_address
+keyed_groups:
+  - key: tags['Name']
+hostnames:
+  - tag:Name
