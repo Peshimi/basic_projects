@@ -29,6 +29,12 @@ resource "aws_instance" "public" {
   security_groups      = [module.allow_ssh.security_group_id]
 	key_name = "kitty"
 
+  lifecycle {
+    ignore_changes = [
+      security_groups,
+    ]
+  }
+
   tags = {
     Name = "wordpress"
   }
@@ -41,6 +47,12 @@ resource "aws_instance" "private" {
   instance_type          = "t3.micro"
   security_groups = [module.allow_ssh.security_group_id]
 	key_name = "kitty"
+
+  lifecycle {
+    ignore_changes = [
+      security_groups,
+    ]
+  }
 
   tags = {
     Name = "database"
